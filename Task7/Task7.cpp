@@ -13,6 +13,8 @@
 #include<list>
 using namespace std;
 GLfloat modelview_matrix[16];
+GLfloat default_matrix[16];
+GLfloat modelview_z_dis;
 const int win_w = 700, win_h = 700;
 GLfloat ex[3] = { 0.0, 0.0, 0.0 }; //观察者位置
 GLfloat ey[3] = { 1.0, 0.0, 0.0 };
@@ -20,6 +22,7 @@ GLfloat ez[3] = { 4.0, 0.0, 0.0 };
 GLfloat fx[3] = { 0.0, 0.0, 0.0 }; //观察对象位置
 GLfloat fy[3] = { 0.0, 0.0, 0.0 };
 GLfloat fz[3] = { 0.0, 0.0, 0.0 };
+GLfloat x_min = .0, x_max = 20.0, y_min = .0, y_max = 20.0, z_min = .0, z_max = 20.0;
 GLint view = 0;
 GLfloat angle = 0.0f;
 void reshape_func(int w, int h);
@@ -84,7 +87,6 @@ public:
 		}
 	}
 };
-
 class Facet
 {
 	// 几点面片
@@ -112,9 +114,6 @@ public:int index;
 			   return false;
 		   }
 	   }
-
-
-	   // 求体积
 	   void toString()
 	   {
 		   cout << "x= " << _vertex_1.index << " y= " << _vertex_2.index << " z= " << _vertex_3.index << endl;
@@ -137,26 +136,23 @@ int main(int argc, char*argv[])
 	ReadPly();
 	endTime = clock();//计时结束
 	GetFieldcirculation(3, 5);
-
 	cout <<"总共多少个点: "<< _listPoint.size() << endl;
 	cout << "The run time is: " << (double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-
 	// 画图
 	glutInit(&argc, argv);
 	// 设置初始显示模式，指定RGB颜色模式以及指定双缓存窗口
-	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
-	glutInitWindowSize(700, 700);
+	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_MULTISAMPLE | GLUT_DEPTH);
+	glutInitWindowSize(win_w, win_h);
 	glutInitWindowPosition(0, 0);
 	glutCreateWindow("bunny");
-	// 显示图像
-	glutDisplayFunc(display_func);
 	// 改变窗口大小时保持图像比例
 	glutReshapeFunc(reshape_func);
-
+	// 显示图像
+	glutDisplayFunc(display_func);
 	// 设置鼠标事件
-	glutMouseFunc(onMouse);
-	//glutMouseFunc(mouse_click_func);
-	//glutMotionFunc(mouse_move_func);
+	//glutMouseFunc(onMouse);
+	glutMouseFunc(mouse_click_func);
+	glutMotionFunc(mouse_move_func);
 	Initial();
 	glutMainLoop();
 }
@@ -182,22 +178,73 @@ void onMouse(int button, int state, int x, int y)
 		glutIdleFunc(NULL);
 	}
 }
+/* 以下三个函数对物体进行平移、旋转、缩放，他们均在视觉(绝对)坐标下进行
+ * 正常调用 glTranslate,glRotate,glScale 均是在局部坐标下进行(按正序看)
+ * 为了达到在视觉坐标下操作的效果，需要将矩阵左乘到当前矩阵
+ */
+void absolute_translate(GLfloat x, GLfloat y, GLfloat z)
+{
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+	glTranslatef(x, y, z);
+	glMultMatrixf(modelview_matrix); // 使变换矩阵左乘到当前矩阵，这样才适合绝对坐标的考虑
+	glGetFloatv(GL_MODELVIEW_MATRIX, modelview_matrix);
+	glPopMatrix();
+}
+void absolute_rotate(GLfloat dgree, GLfloat vecx, GLfloat vecy, GLfloat vecz)
+{
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+	glTranslatef(.0, .0, -modelview_z_dis);		// 平移回去，注意该句和后两句要倒序来看
+	glRotatef(dgree, vecx, vecy, vecz);// 积累旋转量
+	glTranslatef(.0, .0, modelview_z_dis);		// 先平移到原点
+	glMultMatrixf(modelview_matrix); // 使变换矩阵左乘到当前矩阵，这样才适合绝对坐标的考虑
+	glGetFloatv(GL_MODELVIEW_MATRIX, modelview_matrix);
+	glPopMatrix();
+}
+void absolute_scale(GLfloat factor)
+{
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+	glTranslatef(.0, .0, -modelview_z_dis);		// 平移回去，注意该句和后两句要倒序来看
+	glScalef(factor, factor, factor);
+	glTranslatef(.0, .0, modelview_z_dis);		// 先平移到原点
+	glMultMatrixf(modelview_matrix); // 使变换矩阵左乘到当前矩阵，这样才适合绝对坐标的考虑
+	glGetFloatv(GL_MODELVIEW_MATRIX, modelview_matrix);
+	glPopMatrix();
+}
 // 设置窗口
 void reshape_func(int w, int h)
 {
-	if (h == 0)
+	/*if (h == 0)
 		h = 1;
 	glViewport(0, 0, w, h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(45.0, (GLfloat)w / (GLfloat)h, 0.0, 100.0);
+	gluPerspective(45.0, (GLfloat)w / (GLfloat)h, 0.0, 100.0);*/
+	glViewport(0, h - win_w, win_w, win_h);
+
 }
 // 画图函数
 void drawBunny()
 {
 	// 旋转设置
-	cout << getPoint._x << " " << getPoint._y << " " << getPoint._z << endl;
 	glRotatef(angle, 0, 1, 0);
+	// 绘制一个灰色的球
+	GLfloat color[] = { .4f,.4f,.4f,1.0f };
+	// 反射
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, color);
+
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 30.0);
+
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, color);
+
+	// 这个函数告诉接下来要做什么的声明，参数有三种模式：
+	// GL_PROJECTION 投影, GL_MODELVIEW 模型视图, GL_TEXTURE 纹理
+	glMatrixMode(GL_MODELVIEW);
 	// 绘制透明物体
 	for (auto it = vecFacet.begin();it != vecFacet.end();it++)
 	{
@@ -207,10 +254,10 @@ void drawBunny()
 			if (itt != _listPoint.end())
 			{
 				glColor3f(0.0, 1.0, 0.0);
-				glVertex3f(it->_vertex_1._x /100.0f, it->_vertex_1._y / 100.0f, it->_vertex_1._z / 100.0f);
+				glVertex3f(it->_vertex_1._x , it->_vertex_1._y , it->_vertex_1._z );
 				//glColor3f(0.0, 1.0, 0.0);
-				glVertex3f(it->_vertex_3._x /100.0f, it->_vertex_3._y / 100.0f, it->_vertex_3._z / 100.0f);
-				glVertex3f(it->_vertex_2._x / 100.0f, it->_vertex_2._y / 100.0f, it->_vertex_2._z / 100.0f);
+				glVertex3f(it->_vertex_3._x , it->_vertex_3._y , it->_vertex_3._z );
+				glVertex3f(it->_vertex_2._x, it->_vertex_2._y , it->_vertex_2._z );
 				glEnd(); //三角形
 				glPopMatrix();
 				continue;
@@ -220,10 +267,10 @@ void drawBunny()
 			if (itt != _listPoint.end())
 			{
 				glColor3f(0.0, 1.0, 0.0);
-				glVertex3f(it->_vertex_2._x / 100.0f, it->_vertex_2._y / 100.0f, it->_vertex_2._z / 100.0f);
+				glVertex3f(it->_vertex_2._x , it->_vertex_2._y, it->_vertex_2._z);
 				//glColor3f(1.0, 0.0, 1.0);
-				glVertex3f(it->_vertex_3._x / 100.0f, it->_vertex_3._y / 100.0f, it->_vertex_3._z / 100.0f);
-				glVertex3f(it->_vertex_1._x / 100.0f, it->_vertex_1._y / 100.0f, it->_vertex_1._z / 100.0f);
+				glVertex3f(it->_vertex_3._x , it->_vertex_3._y , it->_vertex_3._z);
+				glVertex3f(it->_vertex_1._x , it->_vertex_1._y, it->_vertex_1._z);
 
 				glEnd(); //三角形
 				glPopMatrix();
@@ -234,9 +281,9 @@ void drawBunny()
 			if (itt != _listPoint.end())
 			{
 				glColor3f(0.0, 1.0, 0.0);
-				glVertex3f(it->_vertex_3._x / 100.0f, it->_vertex_3._y / 100.0f, it->_vertex_3._z / 100.0f);
-				glVertex3f(it->_vertex_1._x / 100.0f, it->_vertex_1._y / 100.0f, it->_vertex_1._z / 100.0f);
-				glVertex3f(it->_vertex_2._x / 100.0f, it->_vertex_2._y / 100.0f, it->_vertex_2._z / 100.0f);
+				glVertex3f(it->_vertex_3._x , it->_vertex_3._y , it->_vertex_3._z );
+				glVertex3f(it->_vertex_1._x, it->_vertex_1._y, it->_vertex_1._z);
+				glVertex3f(it->_vertex_2._x , it->_vertex_2._y , it->_vertex_2._z);
 				glEnd(); //三角形
 				glPopMatrix();
 				continue;
@@ -244,86 +291,97 @@ void drawBunny()
 			if (getPoint.isEque(it->_vertex_1))
 			{
 				glColor3f(1.0, 0.0, 0.0);
-				glVertex3f(it->_vertex_1._x/100.0f , it->_vertex_1._y/100.0f, it->_vertex_1._z/100.0f );
-				glVertex3f(it->_vertex_3._x / 100.0f, it->_vertex_3._y / 100.0f, it->_vertex_3._z / 100.0f);
-				glVertex3f(it->_vertex_2._x / 100.0f, it->_vertex_2._y / 100.0f, it->_vertex_2._z / 100.0f);
+				glVertex3f(it->_vertex_1._x , it->_vertex_1._y, it->_vertex_1._z );
+				glVertex3f(it->_vertex_3._x , it->_vertex_3._y , it->_vertex_3._z );
+				glVertex3f(it->_vertex_2._x , it->_vertex_2._y , it->_vertex_2._z );
 				glEnd(); //三角形
 				glPopMatrix();
 			}
 			else if (getPoint.isEque(it->_vertex_2))
 			{
 				glColor3f(1.0, 0.0, 0.0);
-				glVertex3f(it->_vertex_1._x/100.0f, it->_vertex_1._y /100.0f, it->_vertex_1._z/100.0f);
-				glVertex3f(it->_vertex_3._x /100.0f, it->_vertex_3._y / 100.0f, it->_vertex_3._z /100.0f);
-				glVertex3f(it->_vertex_2._x/100.0f , it->_vertex_2._y/100.0f , it->_vertex_2._z/100.0f );
+				glVertex3f(it->_vertex_1._x, it->_vertex_1._y , it->_vertex_1._z);
+				glVertex3f(it->_vertex_3._x , it->_vertex_3._y , it->_vertex_3._z );
+				glVertex3f(it->_vertex_2._x , it->_vertex_2._y , it->_vertex_2._z );
 				glEnd(); //三角形
 				glPopMatrix();
 			}
 			else if (getPoint.isEque(it->_vertex_3))
 			{
 				glColor3f(1.0, 0.0, 0.0);
-				glVertex3f(it->_vertex_3._x /100.0f, it->_vertex_3._y /100.0f, it->_vertex_3._z /100.0f);
-				glVertex3f(it->_vertex_1._x/100.0f, it->_vertex_1._y/100.0f, it->_vertex_1._z/100.0f);
-				glVertex3f(it->_vertex_2._x /100.0f, it->_vertex_2._y /100.0f, it->_vertex_2._z /100.0f);
+				glVertex3f(it->_vertex_3._x , it->_vertex_3._y , it->_vertex_3._z);
+				glVertex3f(it->_vertex_1._x, it->_vertex_1._y, it->_vertex_1._z);
+				glVertex3f(it->_vertex_2._x , it->_vertex_2._y , it->_vertex_2._z );
 				glEnd(); //三角形
 				glPopMatrix();
 			}
 			else
 			{
-				glColor3f(0.5, 0.5, 0.5);
-				glVertex3f(it->_vertex_1._x /100, it->_vertex_1._y /100, it->_vertex_1._z /100);
-				glVertex3f(it->_vertex_3._x/100, it->_vertex_3._y/100, it->_vertex_3._z/100);
-				glVertex3f(it->_vertex_2._x /100, it->_vertex_2._y /100, it->_vertex_2._z /100);
+				glColor3f(0.0, 0.0, 1.0);
+				glVertex3f(it->_vertex_1._x , it->_vertex_1._y , it->_vertex_1._z );
+				glVertex3f(it->_vertex_3._x, it->_vertex_3._y, it->_vertex_3._z);
+				glVertex3f(it->_vertex_2._x , it->_vertex_2._y , it->_vertex_2._z);
 				glEnd(); //三角形
 				glPopMatrix();
 			}		
 	}
+
 	cout <<"getPointSize" <<getPoint._x << " " << getPoint._y << " " << getPoint._z << endl;
 }
 // 初始化设置
 void Initial(void)
 {
 	glClearColor(1.0, 1.0, 1.0, 1.0);//白色背景，前3个是RGB，最后是Alpha值，用来控制透明，1.0表示完全不透明
-	glShadeModel(GL_FLAT);
+	//glShadeModel(GL_FLAT);
 	//glMatrixMode(GL_PROJECTION);//OpenGL按照三维方式来处理图像，所以需要一个投影变换将三维图形投影到显示器的二维空间中
 	//gluOrtho2D(0.0, 200, 0.0, 150.0);//指定使用正投影将一个x坐标在0~200，y坐标0~150范围内的矩形坐标区域投影到显示器窗口
+		// 投影矩阵初始化
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(20.0, 1.0, 10.0, 300.0);
+	// 默认矩阵初始化
+	glMatrixMode(GL_MODELVIEW);
+	// 对当前矩阵进行初始化
+	glLoadIdentity();
+	/*函数原型
+		void gluLookAt(GLdouble eyex, GLdouble eyey, GLdouble eyez, GLdouble centerx, GLdouble centery, GLdouble centerz, GLdouble upx, GLdouble upy, GLdouble upz);
+	该函数定义一个视图矩阵，并与当前矩阵相乘。
+		第一组eyex, eyey, eyez 相机在世界坐标的位置
+		第二组centerx, centery, centerz 相机镜头对准的物体在世界坐标的位置
+		第三组upx, upy, upz 相机向上的方向在世界坐标中的方向
+		你把相机想象成为你自己的脑袋：
+		第一组数据就是脑袋的位置
+		第二组数据就是眼睛看的物体的位置
+		第三组就是头顶朝向的方向（因为你可以歪着头看同一个物体）*/
+	gluLookAt(100.0 + (x_min + x_max)*.5, 100.0 + (y_min + y_max)*.5, 100.0 + (z_min + z_max)*.5,
+		(x_min + x_max)*.5, (y_min + y_max)*.5, (z_min + z_max)*.5, .0, .0, 1.0);
+	modelview_z_dis = 100.0f * sqrt(3.0f);
+	//这个函数的作用是取出GL_MODELVIEW_MATRIX，然后存储在mat这个矩阵中，用于逆变换等
+	glGetFloatv(GL_MODELVIEW_MATRIX, default_matrix);
+	// 将default拷贝到modelview中，sizeof表示拷贝大小
+	memcpy(modelview_matrix, default_matrix, sizeof(default_matrix));
+	glLoadIdentity();
+
 }
 // 显示
 void display_func()
 {
-	// 次数
-	//static int z = 0;
-	//cout << "显示：" << z++ << " " << endl;
+	static int z = 0;
+	std::cout << "display:" << z++ << std::endl;
+	// 表示要清除颜色缓冲以及深度缓冲，可以使用以下标志位
+	// GL_COLOR_BUFFER_BIT:    当前可写的颜色缓冲
+	// GL_DEPTH_BUFFER_BIT:    深度缓冲
+	// GL_ACCUM_BUFFER_BIT : 累积缓冲
+	// GL_STENCIL_BUFFER_BIT : 模板缓冲
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// 表示要清除颜色缓冲
-	glClear(GL_COLOR_BUFFER_BIT);
-	// 指定显示模式
 	glMatrixMode(GL_MODELVIEW);
-	// 恢复初始坐标
-	glLoadIdentity();
-	// 该函数定义一个视图矩阵，并与当前矩阵相乘
-	gluLookAt(ex[view], ey[view], ez[view], fx[view], fy[view], fz[view], 0.0, 1.0, 0.0);
+	// 设置当前矩阵
+	glLoadMatrixf(modelview_matrix);
 
-	// 画网格线
-	glColor3f(0.82f, 0.82f, 0.82f);
-	glBegin(GL_LINES);
-	float i, j;
-	for (i = -50; i <= 50; i = i + 0.2)
-	{
-		glVertex3f(i, -0.25f, -50.0f);
-		glVertex3f(i, -0.25f, 50.0f);
-	}
-	for (j = -50; j <= 50; j += 0.2)
-	{
-		glVertex3f(-50.0f, -0.25f, j);
-		glVertex3f(50.0f, -0.25f, j);
-	}
-	glEnd();
-	glPushMatrix();
 	drawBunny();
-	glPopMatrix();
-
-	// 交换两个缓冲区指针
+	// 画线
+	// 交换两个缓冲区的指针，当绘制完成，将结果显示在屏幕上，从而解决频繁刷新导致的画面闪烁问题
 	glutSwapBuffers();
 }
 // 查找n环领域
@@ -500,4 +558,93 @@ void ReadPly()
 			break;
 		}
 	}
+}
+
+void absolute_default()
+{
+	memcpy(modelview_matrix, default_matrix, sizeof(default_matrix));
+}
+// 鼠标状态变量，用来在鼠标点击事件和拖动事件之间通信
+static bool l_button_down = false, r_button_down = false, mid_button_down = false;
+static int last_x = -1, last_y = -1;
+#define  GLUT_WHEEL_UP		3 // 滚轮操作  
+#define  GLUT_WHEEL_DOWN	4
+void mouse_click_func(int button, int state, int x, int y)
+{
+	y = win_h - y;
+	switch (button) {
+		// 左按钮
+	case GLUT_LEFT_BUTTON:
+		if (state == GLUT_DOWN) {
+			l_button_down = true;
+			last_x = x; last_y = y;
+			glutSetCursor(GLUT_CURSOR_CROSSHAIR);
+		}
+		else {
+			l_button_down = false;
+			last_x = -1; last_y = -1;
+			glutSetCursor(GLUT_CURSOR_INHERIT);
+		}
+		break;
+		// 中间
+	case GLUT_MIDDLE_BUTTON:
+		if (state == GLUT_DOWN) {
+			mid_button_down = true;
+			last_x = x; last_y = y;
+			glutSetCursor(GLUT_CURSOR_CYCLE);
+
+		}
+		else {
+			mid_button_down = false;
+			last_x = -1; last_y = -1;
+			glutSetCursor(GLUT_CURSOR_INHERIT);
+		}
+		break;
+		// 右边
+	case GLUT_RIGHT_BUTTON:
+		if (state == GLUT_DOWN) {
+			r_button_down = true;
+			absolute_default();
+			glutSetCursor(GLUT_CURSOR_LEFT_ARROW);
+			glutPostRedisplay();
+		}
+		else {
+			r_button_down = false;
+			glutSetCursor(GLUT_CURSOR_INHERIT);
+		}
+		break;
+		// 转动
+	case GLUT_WHEEL_UP:
+		if (state == GLUT_UP) {
+			absolute_scale(.9f);
+			glutPostRedisplay();
+		}
+		break;
+		// 向下转动
+	case GLUT_WHEEL_DOWN:
+		if (state == GLUT_UP) {
+			absolute_scale(1.1f);
+			glutPostRedisplay();
+		}
+		break;
+	}
+
+}
+// 鼠标移动
+void mouse_move_func(int x, int y)
+{
+	y = win_h - y;
+	if (last_x >= 0 && last_y >= 0 && (last_x != x || last_y != y)) {
+		GLfloat deltax = GLfloat(x - last_x), deltay = GLfloat(y - last_y);
+		if (mid_button_down) {
+			absolute_translate(deltax * .1f, deltay * .1f, .0f);
+			glutPostRedisplay();
+		}
+		else if (l_button_down) {
+			GLfloat dis = sqrt(deltax*deltax + deltay * deltay);
+			absolute_rotate(dis, -deltay / dis, deltax / dis, .0);
+			glutPostRedisplay();
+		}
+	}
+	last_x = x; last_y = y;
 }
