@@ -135,8 +135,9 @@ int main(int argc, char*argv[])
 	startTime = clock();//计时开始
 	ReadPly();
 	endTime = clock();//计时结束
-	GetFieldcirculation(3, 5);
-	cout <<"总共多少个点: "<< _listPoint.size() << endl;
+	GetFieldcirculation(0, 5);
+	cout << " " << getPoint._x << " " << getPoint._y << " " << getPoint._z << endl;
+	cout << "总共多少个点: " << _listPoint.size() << endl;
 	cout << "The run time is: " << (double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
 	// 画图
 	glutInit(&argc, argv);
@@ -250,82 +251,26 @@ void drawBunny()
 	{
 			glPushMatrix();
 			glBegin(GL_TRIANGLES);
-			auto itt = _listPoint.find(it->_vertex_1);
-			if (itt != _listPoint.end())
-			{
-				glColor3f(0.0, 1.0, 0.0);
-				glVertex3f(it->_vertex_1._x , it->_vertex_1._y , it->_vertex_1._z );
-				//glColor3f(0.0, 1.0, 0.0);
-				glVertex3f(it->_vertex_3._x , it->_vertex_3._y , it->_vertex_3._z );
-				glVertex3f(it->_vertex_2._x, it->_vertex_2._y , it->_vertex_2._z );
-				glEnd(); //三角形
-				glPopMatrix();
-				continue;
-
-			}
-			 itt = _listPoint.find(it->_vertex_2);
-			if (itt != _listPoint.end())
-			{
-				glColor3f(0.0, 1.0, 0.0);
-				glVertex3f(it->_vertex_2._x , it->_vertex_2._y, it->_vertex_2._z);
-				//glColor3f(1.0, 0.0, 1.0);
-				glVertex3f(it->_vertex_3._x , it->_vertex_3._y , it->_vertex_3._z);
-				glVertex3f(it->_vertex_1._x , it->_vertex_1._y, it->_vertex_1._z);
-
-				glEnd(); //三角形
-				glPopMatrix();
-				continue;
-
-			}
-			 itt = _listPoint.find(it->_vertex_3);
-			if (itt != _listPoint.end())
-			{
-				glColor3f(0.0, 1.0, 0.0);
-				glVertex3f(it->_vertex_3._x , it->_vertex_3._y , it->_vertex_3._z );
-				glVertex3f(it->_vertex_1._x, it->_vertex_1._y, it->_vertex_1._z);
-				glVertex3f(it->_vertex_2._x , it->_vertex_2._y , it->_vertex_2._z);
-				glEnd(); //三角形
-				glPopMatrix();
-				continue;
-			} 
-			if (getPoint.isEque(it->_vertex_1))
-			{
-				glColor3f(1.0, 0.0, 0.0);
-				glVertex3f(it->_vertex_1._x , it->_vertex_1._y, it->_vertex_1._z );
-				glVertex3f(it->_vertex_3._x , it->_vertex_3._y , it->_vertex_3._z );
-				glVertex3f(it->_vertex_2._x , it->_vertex_2._y , it->_vertex_2._z );
-				glEnd(); //三角形
-				glPopMatrix();
-			}
-			else if (getPoint.isEque(it->_vertex_2))
-			{
-				glColor3f(1.0, 0.0, 0.0);
-				glVertex3f(it->_vertex_1._x, it->_vertex_1._y , it->_vertex_1._z);
-				glVertex3f(it->_vertex_3._x , it->_vertex_3._y , it->_vertex_3._z );
-				glVertex3f(it->_vertex_2._x , it->_vertex_2._y , it->_vertex_2._z );
-				glEnd(); //三角形
-				glPopMatrix();
-			}
-			else if (getPoint.isEque(it->_vertex_3))
-			{
-				glColor3f(1.0, 0.0, 0.0);
-				glVertex3f(it->_vertex_3._x , it->_vertex_3._y , it->_vertex_3._z);
-				glVertex3f(it->_vertex_1._x, it->_vertex_1._y, it->_vertex_1._z);
-				glVertex3f(it->_vertex_2._x , it->_vertex_2._y , it->_vertex_2._z );
-				glEnd(); //三角形
-				glPopMatrix();
-			}
-			else
-			{
-				glColor3f(0.0, 0.0, 1.0);
-				glVertex3f(it->_vertex_1._x , it->_vertex_1._y , it->_vertex_1._z );
-				glVertex3f(it->_vertex_3._x, it->_vertex_3._y, it->_vertex_3._z);
-				glVertex3f(it->_vertex_2._x , it->_vertex_2._y , it->_vertex_2._z);
-				glEnd(); //三角形
-				glPopMatrix();
-			}		
+		    glColor3f(0.0, 0.0, 1.0);
+			glVertex3f(it->_vertex_1._x , it->_vertex_1._y , it->_vertex_1._z );
+			glVertex3f(it->_vertex_3._x, it->_vertex_3._y, it->_vertex_3._z);
+			glVertex3f(it->_vertex_2._x , it->_vertex_2._y , it->_vertex_2._z);
+			glEnd(); //三角形
+			glPopMatrix();
+			
 	}
-
+	glPointSize(9.0);
+	glBegin(GL_POINTS);
+	glColor3f(1.0, 0.0, 0.0);
+	glVertex3f(getPoint._x, getPoint._y, getPoint._z);
+	glEnd();
+	for (auto it = _listPoint.begin();it != _listPoint.end();it++)
+	{
+		glBegin(GL_POINTS);
+		glColor3f(0.0, 1.0, 0.0);
+		glVertex3f(it->_x, it->_y, it->_z);
+		glEnd();
+	}
 	cout <<"getPointSize" <<getPoint._x << " " << getPoint._y << " " << getPoint._z << endl;
 }
 // 初始化设置
@@ -477,7 +422,6 @@ void ReadPly()
 	string s;
 	int countPoint = 0;
 	if (fin.fail())
-
 	{
 		cout << "打开文件错误!" << endl;
 		exit(0);
