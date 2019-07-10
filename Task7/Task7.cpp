@@ -136,11 +136,13 @@ int main(int argc, char*argv[])
 	clock_t startTime, endTime;
 	startTime = clock();//计时开始
 	ReadPly();
+	int index = 0;
+	int nFiled = 10;
 	endTime = clock();//计时结束
-	GetFieldcirculation(0, 2);
-	cout << " " << getPoint._x << " " << getPoint._y << " " << getPoint._z << endl;
-	cout << "总共多少个点: " << _listinsert.size() << endl;
-	cout << "The run time is: " << (double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+	GetFieldcirculation(index, nFiled);
+	//cout << " " << getPoint._x << " " << getPoint._y << " " << getPoint._z << endl;
+	cout <<"第几个点 ："<<index<<"; "<<nFiled<<" 重领域 " <<" 总共多少个点: " << listPoint.size() << endl;
+	//cout << "The run time is: " << (double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
 	// 画图
 	glutInit(&argc, argv);
 	// 设置初始显示模式，指定RGB颜色模式以及指定双缓存窗口
@@ -289,35 +291,10 @@ void drawBunny()
 	{
 
 			glBegin(GL_POINTS);
-			glColor3f(1.0, 0.0, 0.0);
+			glColor3f(1.0,1.0, 0.0);
 			glVertex3f(it->_x / 2, it->_y / 2, it->_z / 2);
 			glEnd();
 	}
-	/*glLineWidth(1.0);
-	for (auto it = _setPoint.begin();it != _setPoint.end();it++)
-	{
-		if ((it++) != _setPoint.end())
-		{
-			glBegin(GL_LINES);
-			glColor3f(0.0, 1.0, 0.0);
-			glVertex3f(it->_x, it->_y, it->_z);
-			glVertex3f((it++)->_x, (it++)->_y, (it++)->_z);
-			glEnd();
-		}
-	}
-	auto it = _setPoint.cbegin();
-	auto itt = _setPoint.cend();
-
-	if (it != _setPoint.end() && itt != _setPoint.end())
-	{
-		glBegin(GL_LINE);
-		glColor3f(0.0, 1.0, 0.0);
-		glVertex3f(it->_x, it->_y, it->_z);
-		glVertex3f(itt->_x, itt->_y, itt->_z);
-		glEnd();
-	}*/
-
-	cout <<"getPointSize" <<getPoint._x << " " << getPoint._y << " " << getPoint._z << endl;
 }
 // 初始化设置
 void Initial(void)
@@ -458,7 +435,7 @@ void ReadPly()
 				float x1, y1, z1;
 				iss >> x1 >> y1 >> z1;
 				Point point(countPoint, x1, y1, z1);
-				cout << point._x <<" "<< point._y << endl; 
+				//cout << point._x <<" "<< point._y << endl; 
 				point.flag = 0;
 				vecPoint.insert(pair<int, Point>(countPoint, point));
 				countPoint++;
@@ -538,10 +515,6 @@ void ReadPly()
 		}
 	}
 
-	for (auto it = vecPoint.begin();it != vecPoint.end();it++)
-	{
-		cout << " hello  " << it->second.listfacet.size() << endl;
-	}
 }
 
 void absolute_default()
