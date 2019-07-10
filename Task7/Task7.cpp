@@ -119,15 +119,17 @@ public:int index;
 		   cout << "x= " << _vertex_1.index << " y= " << _vertex_2.index << " z= " << _vertex_3.index << endl;
 	   }
 };
-
 void ReadPly();
 map<int, Point>vecPoint;
 vector<Facet>vecFacet;
-set<Point>_listPoint;
+map<int, Facet>mapFacet;
+set<Point>_listinsert;
 Point getPoint;
 void GetFieldcirculation(int index, int nField);
 void onMouse(int button, int state, int x, int y);
 void RotateRect();
+set<int>listPoint;
+set<Point>_setPoint;
 int main(int argc, char*argv[])
 {
 	std::cout << "Hello World!\n" << endl;;
@@ -135,16 +137,16 @@ int main(int argc, char*argv[])
 	startTime = clock();//计时开始
 	ReadPly();
 	endTime = clock();//计时结束
-	GetFieldcirculation(0, 5);
+	GetFieldcirculation(0, 2);
 	cout << " " << getPoint._x << " " << getPoint._y << " " << getPoint._z << endl;
-	cout << "总共多少个点: " << _listPoint.size() << endl;
+	cout << "总共多少个点: " << _listinsert.size() << endl;
 	cout << "The run time is: " << (double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
 	// 画图
 	glutInit(&argc, argv);
 	// 设置初始显示模式，指定RGB颜色模式以及指定双缓存窗口
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_MULTISAMPLE | GLUT_DEPTH);
 	glutInitWindowSize(win_w, win_h);
-	glutInitWindowPosition(0, 0);
+	glutInitWindowPosition(100, 0);
 	glutCreateWindow("bunny");
 	// 改变窗口大小时保持图像比例
 	glutReshapeFunc(reshape_func);
@@ -234,12 +236,11 @@ void drawBunny()
 {
 	// 旋转设置
 	glRotatef(angle, 0, 1, 0);
-	// 绘制一个灰色的球
 	GLfloat color[] = { .4f,.4f,.4f,1.0f };
 	// 反射
 	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, color);
 
-	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 30.0);
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 20.0);
 
 	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, color);
 
@@ -252,25 +253,70 @@ void drawBunny()
 			glPushMatrix();
 			glBegin(GL_TRIANGLES);
 		    glColor3f(0.0, 0.0, 1.0);
-			glVertex3f(it->_vertex_1._x , it->_vertex_1._y , it->_vertex_1._z );
-			glVertex3f(it->_vertex_3._x, it->_vertex_3._y, it->_vertex_3._z);
-			glVertex3f(it->_vertex_2._x , it->_vertex_2._y , it->_vertex_2._z);
+			glVertex3f(it->_vertex_1._x/2 , it->_vertex_1._y/2 , it->_vertex_1._z/2 );
+			glVertex3f(it->_vertex_3._x / 2, it->_vertex_3._y / 2, it->_vertex_3._z / 2);
+			glVertex3f(it->_vertex_2._x / 2, it->_vertex_2._y / 2, it->_vertex_2._z / 2);
 			glEnd(); //三角形
 			glPopMatrix();
+
+			// 画线
+			glBegin(GL_LINES);
+			glColor3f(0.0, 1.0, 0.0);
+			glVertex3f(it->_vertex_1._x / 2, it->_vertex_1._y / 2, it->_vertex_1._z / 2);
+			glVertex3f(it->_vertex_3._x / 2, it->_vertex_3._y / 2, it->_vertex_3._z / 2);
+			glEnd();
+
+
+			glBegin(GL_LINES);
+			glColor3f(0.0, 1.0, 0.0);
+			glVertex3f(it->_vertex_1._x / 2, it->_vertex_1._y / 2, it->_vertex_1._z / 2);
+			glVertex3f(it->_vertex_2._x / 2, it->_vertex_2._y / 2, it->_vertex_2._z / 2);
+			glEnd();
+
+			glBegin(GL_LINES);
+			glColor3f(0.0, 1.0, 0.0);
+			glVertex3f(it->_vertex_3._x / 2, it->_vertex_3._y / 2, it->_vertex_3._z / 2);
+			glVertex3f(it->_vertex_2._x / 2, it->_vertex_2._y / 2, it->_vertex_2._z / 2);
+			glEnd();
 			
 	}
-	glPointSize(9.0);
+	glPointSize(5.0);
 	glBegin(GL_POINTS);
 	glColor3f(1.0, 0.0, 0.0);
-	glVertex3f(getPoint._x, getPoint._y, getPoint._z);
+	glVertex3f(getPoint._x / 2, getPoint._y / 2, getPoint._z / 2);
 	glEnd();
-	for (auto it = _listPoint.begin();it != _listPoint.end();it++)
+	for (auto it = _setPoint.begin();it != _setPoint.end();it++)
 	{
-		glBegin(GL_POINTS);
+
+			glBegin(GL_POINTS);
+			glColor3f(1.0, 0.0, 0.0);
+			glVertex3f(it->_x / 2, it->_y / 2, it->_z / 2);
+			glEnd();
+	}
+	/*glLineWidth(1.0);
+	for (auto it = _setPoint.begin();it != _setPoint.end();it++)
+	{
+		if ((it++) != _setPoint.end())
+		{
+			glBegin(GL_LINES);
+			glColor3f(0.0, 1.0, 0.0);
+			glVertex3f(it->_x, it->_y, it->_z);
+			glVertex3f((it++)->_x, (it++)->_y, (it++)->_z);
+			glEnd();
+		}
+	}
+	auto it = _setPoint.cbegin();
+	auto itt = _setPoint.cend();
+
+	if (it != _setPoint.end() && itt != _setPoint.end())
+	{
+		glBegin(GL_LINE);
 		glColor3f(0.0, 1.0, 0.0);
 		glVertex3f(it->_x, it->_y, it->_z);
+		glVertex3f(itt->_x, itt->_y, itt->_z);
 		glEnd();
-	}
+	}*/
+
 	cout <<"getPointSize" <<getPoint._x << " " << getPoint._y << " " << getPoint._z << endl;
 }
 // 初始化设置
@@ -298,9 +344,9 @@ void Initial(void)
 		第一组数据就是脑袋的位置
 		第二组数据就是眼睛看的物体的位置
 		第三组就是头顶朝向的方向（因为你可以歪着头看同一个物体）*/
-	gluLookAt(100.0 + (x_min + x_max)*.5, 100.0 + (y_min + y_max)*.5, 100.0 + (z_min + z_max)*.5,
+	gluLookAt(140.0 + (x_min + x_max)*.5,140.0 + (y_min + y_max)*.5,140.0 + (z_min + z_max)*.5,
 		(x_min + x_max)*.5, (y_min + y_max)*.5, (z_min + z_max)*.5, .0, .0, 1.0);
-	modelview_z_dis = 100.0f * sqrt(3.0f);
+	modelview_z_dis = 140.0f * sqrt(3.0f);
 	//这个函数的作用是取出GL_MODELVIEW_MATRIX，然后存储在mat这个矩阵中，用于逆变换等
 	glGetFloatv(GL_MODELVIEW_MATRIX, default_matrix);
 	// 将default拷贝到modelview中，sizeof表示拷贝大小
@@ -325,6 +371,7 @@ void display_func()
 	glLoadMatrixf(modelview_matrix);
 
 	drawBunny();
+
 	// 画线
 	// 交换两个缓冲区的指针，当绘制完成，将结果显示在屏幕上，从而解决频繁刷新导致的画面闪烁问题
 	glutSwapBuffers();
@@ -332,89 +379,63 @@ void display_func()
 // 查找n环领域
 void GetFieldcirculation(int index, int nField)
 {
+	int size = 0;
 	// 根据index找到点,注意重复问题，已经判断的点不能再次加入
 	list<int>_listPointTemp;
+	auto ittt= vecPoint.find(index);
+	if (ittt != vecPoint.end())
+	{
+		getPoint = ittt->second;
+	}
 	_listPointTemp.push_back(index);
-	list<int>_listPointTemp1;
-	_listPointTemp1.push_back(index);
+	listPoint.insert(index);
 	while (nField > 0)
 	{
-		_listPointTemp = _listPointTemp1;
-		list<int>_listPointTemp1;
-		for (auto it = _listPointTemp.begin(); it != _listPointTemp.end(); it++)
+		int start = 0, size = _listPointTemp.size();
+		while ((!_listPointTemp.empty())&&(start <size))
 		{
-
-			// 获取index，哪个点	
-			index = *it;
-			for (auto iter = vecPoint.begin(); iter != vecPoint.end(); iter++)
+			// 出栈,返回第一个函数
+			//cout << "Point Size is : " << _listPointTemp.size() << endl;
+			index = _listPointTemp.front();
+			//cout << "index :" << index << endl;
+			_listPointTemp.pop_front();
+			for (auto it = vecPoint.begin();it != vecPoint.end();it++)
 			{
-				// 找到对应的点	
-
-				if (iter->second.index == index)
+				if (index == it->second.index)
 				{
-					Point	getPoint1(iter->second._x, iter->second._y, iter->second._z);
-					getPoint = getPoint1;
-					// 找到对应的面片信息
-					for (auto it = vecFacet.begin(); it != vecFacet.end(); it++)
+					vector<int>listInt = it->second.listfacet;
+					for (auto i=listInt.begin();i!=listInt.end();i++)
 					{
-						if (it->_vertex_1.index == index)
+						auto it = mapFacet.find(*i);
+						//Facet facet=it->second;
+						if (listPoint.count(it->second._vertex_1.index) == 0)
 						{
-							it->_vertex_1.flag = 1;
-							_listPoint.insert(it->_vertex_1);
-
-							if (it->_vertex_2.flag == 0)
-							{
-								_listPointTemp1.push_back(it->_vertex_2.index);
-								_listPoint.insert(it->_vertex_2);
-							}
-							if (it->_vertex_3.flag == 0)
-							{
-								_listPointTemp1.push_back(it->_vertex_3.index);
-								_listPoint.insert(it->_vertex_3);
-
-							}
+							listPoint.insert(it->second._vertex_1.index);
+							_listPointTemp.push_back(it->second._vertex_1.index);
+							_setPoint.insert(it->second._vertex_1);
 						}
-						else if (it->_vertex_2.index == index)
+						if (listPoint.count(it->second._vertex_2.index) == 0)
 						{
-							it->_vertex_2.flag = 1;
-							_listPoint.insert(it->_vertex_2);
+							listPoint.insert(it->second._vertex_2.index);
+							_listPointTemp.push_back(it->second._vertex_2.index);
+							_setPoint.insert(it->second._vertex_2);
 
-							if (it->_vertex_1.flag == 0)
-							{
-								_listPointTemp1.push_back(it->_vertex_1.index);
-								_listPoint.insert(it->_vertex_1);
-
-							}
-							if (it->_vertex_3.flag == 0)
-							{
-								_listPointTemp1.push_back(it->_vertex_3.index);
-								_listPoint.insert(it->_vertex_3);
-
-							}
 						}
-						else if (it->_vertex_3.index == index)
+						if (listPoint.count(it->second._vertex_3.index) == 0)
 						{
-							it->_vertex_3.flag = 1;
-							_listPoint.insert(it->_vertex_3);
-							if (it->_vertex_1.flag == 0)
-							{
-								_listPointTemp1.push_back(it->_vertex_1.index);
-								_listPoint.insert(it->_vertex_1);
-							}
-							if (it->_vertex_2.flag == 0)
-							{
-								_listPointTemp1.push_back(it->_vertex_2.index);
-								_listPoint.insert(it->_vertex_2);
-
-							}
+							listPoint.insert(it->second._vertex_3.index);
+							_listPointTemp.push_back(it->second._vertex_3.index);
+							_setPoint.insert(it->second._vertex_3);
 						}
 					}
+					break;
 				}
 			}
+			size--;
 		}
 		nField--;
 	}
-	_listPoint.erase(getPoint);
+	cout <<" list is :"<< listPoint.size() << endl;
 }
 void ReadPly()
 {
@@ -452,6 +473,7 @@ void ReadPly()
 	ifstream fin1("D:\\work\\任务\\Task7\\bunny(1).ply");
 	string s1;
 	double Ssum = 0, TotalVolume = 0;
+	int count = 0;
 	while (getline(fin1, s1))
 	{
 		if (strstr(s1.c_str(), "3 0 1 2") != NULL)
@@ -461,19 +483,25 @@ void ReadPly()
 			auto it = vecPoint.find(0);
 			if (it != vecPoint.end())
 			{
+				it->second.addFacet(count);
 				facet._vertex_1 = it->second;
 			}
 			auto it1 = vecPoint.find(1);
 			if (it1 != vecPoint.end())
 			{
+				it1->second.addFacet(count);
 				facet._vertex_2 = it1->second;
 			}
 			auto it2 = vecPoint.find(2);
 			if (it2 != vecPoint.end())
 			{
+				it2->second.addFacet(count);
 				facet._vertex_3 = it2->second;
 			}
+	
+			mapFacet.insert(pair<int, Facet>(count, facet));
 			vecFacet.push_back(facet);
+			count++;
 			while (getline(fin, s))
 			{
 				//cout << "s11: " << s << endl;
@@ -485,22 +513,34 @@ void ReadPly()
 				auto it = vecPoint.find(b);
 				if (it != vecPoint.end())
 				{
+					it->second.addFacet(count);
 					facet._vertex_1 = it->second;
 				}
 				auto it1 = vecPoint.find(c);
 				if (it1 != vecPoint.end())
 				{
+					it1->second.addFacet(count);
+
 					facet._vertex_2 = it1->second;
 				}
 				auto it2 = vecPoint.find(d);
 				if (it2 != vecPoint.end())
 				{
+					it2->second.addFacet(count);
 					facet._vertex_3 = it2->second;
 				}
+				mapFacet.insert(pair<int, Facet>(count, facet));
 				vecFacet.push_back(facet);
+				count++;
+
 			}
 			break;
 		}
+	}
+
+	for (auto it = vecPoint.begin();it != vecPoint.end();it++)
+	{
+		cout << " hello  " << it->second.listfacet.size() << endl;
 	}
 }
 
